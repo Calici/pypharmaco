@@ -32,11 +32,6 @@ class Section(Field[Dict[str, Any]]):
             if k in self._fields:
                 field = getattr(self, k)
                 field.set(v)
-    
-    def __setattr__(self, __name: str, __value: Any) -> None:
-        if __name in self._fields:
-            raise RuntimeError("Do not set value of fields directly, use .set()")
-        super().__setattr__(__name, __value)
 
     def get(self) -> Dict[str, Any]:
         return {
