@@ -8,11 +8,7 @@ setup(
     author='Jonathan Willianto',
     author_email='jo.will@calici.co',
     license='MIT',
-    packages=[
-      "env_parser", 
-      "structure", 
-      "web_socket"
-    ],
+    packages=[ "pypharmaco" ],
     install_requires=[
         
     ]
