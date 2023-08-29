@@ -1,5 +1,5 @@
 from .consumer import JSONSocketConsumerI, AsyncJSONSocketConsumerI
-from .props import SocketField, SocketProps
+from .props import SocketProps
 from .exceptions import \
     SectionError, \
     WaitInput, \

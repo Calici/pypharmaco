@@ -1,7 +1,10 @@
-from structure.field import Field
-from structure.section import Section
+from pypharmaco.structure import Section, Field
+from typing import \
+  TypeVar, \
+  Generic
 
-class SocketField(Field):
+T = TypeVar("T")
+class SocketField(Field[T], Generic[T]):
     pass
 
 class SocketProps(Section):
