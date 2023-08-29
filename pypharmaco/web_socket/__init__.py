@@ -1,10 +1,8 @@
 from .loop import \
   AsyncWebSocketLoop, \
-  WebSocketLoop, \
-  SocketProps
+  WebSocketLoop
 
 __all__ = [
     'AsyncWebSocketLoop', 
-    'WebSocketLoop', 
-    'SocketProps'
+    'WebSocketLoop'
 ]
