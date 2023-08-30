@@ -2,29 +2,23 @@ from .field import Field
 from typing import \
   Dict, \
   Any, \
-  TypeVar, \
   Set
-
-T = TypeVar("T")
-class SectionField(Field[T]):
-    __slots__ = ('fd_name', 'field')
-    def __init__(self, field : Field[T], fd_name : str):
-        self.fd_name = fd_name
-        super().__init__(field.type, field.default)
-    def field_name(self):
-        return self.fd_name
+import copy
 
 class Section(Field[Dict[str, Any]]):
     def __init__(self, **kwargs):
-        self._fields    = self._build_fields()
+        self._fields = self._build_fields()
     
     def _build_fields(self) -> Set[str]:
         fields : Set[str] = set()
         for attr_name in dir(self):
-            attr = getattr(self, attr_name)
-            if isinstance(attr, Field):
-                setattr(self, attr_name, SectionField(attr, attr_name))
-                fields.add(attr_name)
+            try:
+                attr = getattr(self, attr_name)
+                if isinstance(attr, Field):
+                    setattr(self, attr_name, copy.deepcopy(attr))
+                    fields.add(attr_name)
+            except AttributeError:
+                continue
         return fields
 
     def set(self, **kwargs):
@@ -39,7 +33,7 @@ class Section(Field[Dict[str, Any]]):
             for fd_name in self.field_names()
         }
     
-    def __getitem__(self, field_name : str) -> SectionField:
+    def __getitem__(self, field_name : str):
         if field_name in self._fields:
             return getattr(self, field_name)
         raise RuntimeError("No such field {0}".format(field_name))
