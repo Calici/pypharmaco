@@ -1,136 +1,118 @@
 from .consumer import JSONSocketConsumerI, AsyncJSONSocketConsumerI
 from .props import SocketProps
+from .section import SocketSection, AsyncSocketSection
 from .exceptions import \
     SectionError, \
-    WaitInput, \
     WaitInputForNext, \
-    SkipCurrent, \
     SkipCurrentNoReturn, \
     SkipNextNoReturn, \
     Disconnect, \
-    JumpSection
+    JumpSection, \
+    SocketException, \
+    ContinueLoop, \
+    BreakLoop, \
+    PassLoop
 from typing import \
-  TypeVar, \
-  Generic, \
-  List, \
-  Any
+    TypeVar, \
+    Generic, \
+    List
+from .sys_call import \
+    SysCallSection, \
+    AsyncSysCallSection
 import logging
 
 AsyncSocket = TypeVar('AsyncSocket', bound = AsyncJSONSocketConsumerI)
-SyncSocket = TypeVar('SyncSocket', bound = JSONSocketConsumerI)
+SyncSocket = TypeVar(
+    'SyncSocket', bound = JSONSocketConsumerI, covariant = True
+)
 Props = TypeVar("Props", bound = SocketProps)
 
-
-class AsyncSocketSection(Generic[AsyncSocket]):
-    async def run(self, 
-        content : dict, props : SocketProps, socket : AsyncSocket
-    ):
-        pass
-    async def pre_run(self, 
-        content : dict, props : SocketProps, socket : AsyncSocket
-    ):
-        pass
-    async def post_run(self, 
-        content : dict, props : SocketProps, socket : AsyncSocket
-    ):
-        pass
-    def name(self):
-        return self.__class__.__name__
-
-class SocketSection(Generic[SyncSocket]):
-    def run(self, 
-        content : dict, props : SocketProps, socket : SyncSocket
-    ): pass
-    def pre_run(self, 
-        content : dict, props : SocketProps, socket : SyncSocket
-    ): pass
-    def post_run(self, 
-        content : dict, props : SocketProps, socket : SyncSocket
-    ): pass
-    def name(self):
-        return self.__class__.__name__
-
 class WebSocketLoop(Generic[Props, SyncSocket]):
-    __slots__ = ( 'flags', 'props', 'socket' )
+    __slots__ = ( 'flags', 'props', 'socket', 'sys_call')
     sections : List[SocketSection[SyncSocket]] = []
     def __init__(self, socket : SyncSocket, props : Props):
         self.flags = [ False for section in self.sections ]
         self.props = props
         self.socket = socket
+        self.sys_call = SysCallSection(self.flags, self.sections)
     
-    def sys_call_payload(self, value : Any):
-        return {
-            'type' : 'sys_call', 
-            'msg' : value
-        }
-
-    def loop_sys_call(self, content : dict) -> dict:
-        sys_call_type = content.get('msg')
-        if sys_call_type == 'loop_section':
-            try:
-                flags_id = self.flags.index(False)
-                return self.sys_call_payload(
-                    self.sections[flags_id].__class__.__name__
-                )
-            except:
-                return self.sys_call_payload("All Sections have been passed")
-        elif sys_call_type == 'section_size':
-            return self.sys_call_payload(len(self.flags))
-        return self.sys_call_payload(
-            "Invalid SysCall {0}".format(sys_call_type)
-        )
-            
-    def is_sys_call(self, content : dict) -> bool:
-        return content.get('type') == 'sys_call'
+    def action_handler(self, content : dict, i : int, e : SocketException):
+        if isinstance(e, WaitInputForNext):
+            self.set_flag(i, True)
+        elif isinstance(e, SectionError):
+            self.socket.send_json({'type' : 'err', 'msg' : e.message})
+            logging.error(e.message)
+            self.socket.close()
+        elif isinstance(e, WaitInputForNext):
+            self.set_flag(i, True)
+        elif isinstance(e, Disconnect):
+            self.socket.close()
+        elif isinstance(e, SkipCurrentNoReturn):
+            self.set_flag(i, True)
+        elif isinstance(e, SkipNextNoReturn):
+            self.set_flag(i, True)
+            if (i + 1) < len(self.sections):
+                self.set_flag(i + 1, True)
+        elif isinstance(e, Disconnect):
+            self.socket.close()
+        elif isinstance(e, JumpSection):
+            target = e.target
+            self.flags = [
+                i < target for i in range(len(self.flags)) 
+            ]
+            self.run(content)
+        e.throw_exec()
 
     def run_sys_call(self, content : dict):
-        should_run = self.is_sys_call(content)
-        if should_run:
-            self.socket.send_json(
-                self.loop_sys_call(content)
-            )
-        return should_run
-    
+        # Run Sys Call First
+        self.sys_call.run(content, self.props, self.socket)
+        self.sys_call.pre_run(content, self.props, self.socket)
+        self.sys_call.post_run(content, self.props, self.socket)
+
     def run(self, content : dict):
-        if self.run_sys_call(content):
-            return
-        run_next_section = True
         for i in range(len(self.sections)):
             section = self.sections[i]
-            if not run_next_section:
-                self.set_flag(i, True)
-                run_next_section = True
-                continue
             if not self.flags[i]:
                 try:
+                    self.run_sys_call(content)
+                    # Run The rest later
                     section.pre_run(content, self.props, self.socket)
                     section.run(content, self.props, self.socket)
                     section.post_run(content, self.props, self.socket)
-                except SectionError as e:
-                    self.socket.send_json({'type' : 'err', 'msg' : e.message})
-                    logging.error(e.message)
-                    self.socket.close()
-                    break
-                except WaitInput as e: break
-                except WaitInputForNext: 
-                    self.set_flag(i, True)
-                    break
-                except SkipCurrent as e: continue
-                except Disconnect as e: self.socket.close()
-                except SkipCurrentNoReturn:
-                    self.set_flag(i, True)
-                    continue
-                except SkipNextNoReturn as e:
-                    run_next_section = False
-                    self.set_flag(i, True)
-                    continue
-                except JumpSection as e:
-                    target = e.target
-                    self.flags = [
-                        i < target for i in range(len(self.flags)) 
-                    ]
-                    self.run(content)
+                except Exception as e:
+                    if isinstance(e, SocketException):
+                        try:
+                            self.action_handler(content, i, e)
+                        except BreakLoop: break
+                        except ContinueLoop: continue
+                        except PassLoop: pass
+                    else:
+                        raise
                 self.set_flag(i, True)
+                # except SectionError as e:
+                #     self.socket.send_json({'type' : 'err', 'msg' : e.message})
+                #     logging.error(e.message)
+                #     self.socket.close()
+                #     break
+                # except WaitInput as e: break
+                # except WaitInputForNext: 
+                #     self.set_flag(i, True)
+                #     break
+                # except SkipCurrent as e: continue
+                # except Disconnect as e: self.socket.close()
+                # except SkipCurrentNoReturn:
+                #     self.set_flag(i, True)
+                #     continue
+                # except SkipNextNoReturn as e:
+                #     run_next_section = False
+                #     self.set_flag(i, True)
+                #     continue
+                # except JumpSection as e:
+                #     target = e.target
+                #     self.flags = [
+                #         i < target for i in range(len(self.flags)) 
+                #     ]
+                #     self.run(content)
 
     def set_flag(self, idx : int, value : bool):
         self.flags[idx] = value
@@ -144,44 +126,93 @@ class WebSocketLoop(Generic[Props, SyncSocket]):
         pass
 
 class AsyncWebSocketLoop(Generic[AsyncSocket, Props]):
-    __slots__ = ( 'flags', 'props', 'socket' )
+    __slots__ = ( 'flags', 'props', 'socket', 'sys_call' )
     sections : List[AsyncSocketSection[AsyncSocket]] = []
     def __init__(self, socket : AsyncSocket, props : Props):
         self.flags = [ False for section in self.sections ]
         self.props = props
         self.socket = socket
+        self.sys_call = AsyncSysCallSection(self.flags, self.sections)
+
+    async def run_sys_call(self, content : dict):
+        # Run Sys Call First
+        await self.sys_call.run(content, self.props, self.socket)
+        await self.sys_call.pre_run(content, self.props, self.socket)
+        await self.sys_call.post_run(content, self.props, self.socket)
+
+    async def action_handler(self, content : dict, i : int, e : SocketException):
+        if isinstance(e, WaitInputForNext):
+            self.set_flag(i, True)
+        elif isinstance(e, SectionError):
+            await self.socket.send_json({'type' : 'err', 'msg' : e.message})
+            logging.error(e.message)
+            await self.socket.close()
+        elif isinstance(e, WaitInputForNext):
+            self.set_flag(i, True)
+        elif isinstance(e, Disconnect):
+            await self.socket.close()
+        elif isinstance(e, SkipCurrentNoReturn):
+            self.set_flag(i, True)
+        elif isinstance(e, SkipNextNoReturn):
+            self.set_flag(i, True)
+            if (i + 1) < len(self.sections):
+                self.set_flag(i + 1, True)
+        elif isinstance(e, Disconnect):
+            await self.socket.close()
+        elif isinstance(e, JumpSection):
+            target = e.target
+            self.flags = [
+                i < target for i in range(len(self.flags)) 
+            ]
+            await self.run(content)
+        e.throw_exec()
 
     async def run(self, content : dict):
-        run_next_section = True
         for i in range(len(self.sections)):
             section = self.sections[i]
-            if not run_next_section:
-                self.set_flag(i, True)
-                run_next_section = True
-                continue
             if not self.flags[i]:
                 try:
+                    await self.run_sys_call(content)
+                    # Run The rest later
                     await section.pre_run(content, self.props, self.socket)
                     await section.run(content, self.props, self.socket)
                     await section.post_run(content, self.props, self.socket)
-                except SectionError as e:
-                    await self.socket.send_json(
-                        {'type' : 'err', 'msg' : e.message}
-                    )
-                    logging.error(e.message)
-                    await self.socket.close()
-                    break
-                except WaitInput as e: break
-                except SkipCurrent as e: continue
-                except Disconnect as e: await self.socket.close()
-                except SkipCurrentNoReturn:
-                    self.set_flag(i, True)
-                    continue
-                except SkipNextNoReturn as e:
-                    run_next_section = False
-                    self.set_flag(i, True)
-                    continue
+                except Exception as e:
+                    if isinstance(e, SocketException):
+                        await self.action_handler(content, i, e)
+                    else:
+                        raise
                 self.set_flag(i, True)
+        # run_next_section = True
+        # for i in range(len(self.sections)):
+        #     section = self.sections[i]
+        #     if not run_next_section:
+        #         self.set_flag(i, True)
+        #         run_next_section = True
+        #         continue
+        #     if not self.flags[i]:
+        #         try:
+        #             await section.pre_run(content, self.props, self.socket)
+        #             await section.run(content, self.props, self.socket)
+        #             await section.post_run(content, self.props, self.socket)
+        #         except SectionError as e:
+        #             await self.socket.send_json(
+        #                 {'type' : 'err', 'msg' : e.message}
+        #             )
+        #             logging.error(e.message)
+        #             await self.socket.close()
+        #             break
+        #         except WaitInput as e: break
+        #         except SkipCurrent as e: continue
+        #         except Disconnect as e: await self.socket.close()
+        #         except SkipCurrentNoReturn:
+        #             self.set_flag(i, True)
+        #             continue
+        #         except SkipNextNoReturn as e:
+        #             run_next_section = False
+        #             self.set_flag(i, True)
+        #             continue
+        #         self.set_flag(i, True)
 
     def set_flag(self, idx : int, value : bool):
         self.flags[idx] = value
