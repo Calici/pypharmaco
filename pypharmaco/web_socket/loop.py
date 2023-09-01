@@ -179,7 +179,11 @@ class AsyncWebSocketLoop(Generic[AsyncSocket, Props]):
                     await section.post_run(content, self.props, self.socket)
                 except Exception as e:
                     if isinstance(e, SocketException):
-                        await self.action_handler(content, i, e)
+                        try:
+                            await self.action_handler(content, i, e)
+                        except BreakLoop: break
+                        except ContinueLoop: continue
+                        except PassLoop: pass
                     else:
                         raise
                 self.set_flag(i, True)
