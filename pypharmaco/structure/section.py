@@ -62,3 +62,11 @@ class Section(Generic[C]):
     def values(self) -> Iterable[C]:
         for field_name in self._fields:
             yield getattr(self, field_name)
+
+    def get_field(self, field_name : str) -> C:
+        if field_name in self._fields:
+            return getattr(self, field_name)
+        else:
+            raise KeyError("No such key {0} in {1}".format(
+                field_name, self.__class__.__name__
+            ))
