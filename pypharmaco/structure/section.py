@@ -9,7 +9,7 @@ from typing import \
   Generic
 import copy
 
-C = TypeVar("C", bound = Field)
+C = TypeVar("C")
 class Section(Generic[C]):
     def __init__(self, **kwargs):
         self._fields = self._build_fields()
