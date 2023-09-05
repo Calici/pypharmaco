@@ -3,11 +3,22 @@ from typing import \
   TypeVar, \
   Generic, \
   Union, \
-  Type, \
-  Any
+  Type
+from abc import ABC, abstractmethod
 
 T = TypeVar("T")
-class Field(Generic[T]):
+class BaseField(Generic[T], ABC):
+    @abstractmethod
+    def validate(self, value : Union[T, str]) -> T:
+        ...
+    @abstractmethod
+    def get(self) -> T:
+        ...
+    @abstractmethod
+    def set(self, value : Union[T, str]):
+        ...
+
+class Field(Generic[T], BaseField[T]):
     __slots__ = ("type", 'value', 'default', 'allow_none')
     def __init__(self, 
         type : Union[Type[T], None] = None, default : T = None, 
@@ -18,21 +29,23 @@ class Field(Generic[T]):
         self.allow_none = allow_none
         self.set(default)
 
-    def validate(self, value : Any) -> T:
+    def validate(self, value : Union[T, str]) -> T:
         if self.type is not None:
             try:
                 if self.allow_none and value is None:
                     return value
-                elif isinstance(value, self.type): 
-                    return value
+                elif isinstance(value, str): 
+                    return self.type(str)
                 else:
-                    return self.type(value)
+                    return value
             except: 
                 raise TypeError(f"{value} cannot be converted to {self.type}")
-        return value
+        return value #type: ignore [Assume Programmer knows what they are doing]
+    
     def set(self, value : T):
         value   = self.validate(value)
         self.value = value
         return self.value
+    
     def get(self) -> T:
         return self.value
