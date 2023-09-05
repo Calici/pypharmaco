@@ -1,4 +1,4 @@
-from .field import Field
+from .field import Field, BaseField
 from typing import \
   Dict, \
   Any, \
@@ -9,7 +9,7 @@ from typing import \
   Generic
 import copy
 
-C = TypeVar("C")
+C = TypeVar("C", bound = BaseField)
 class Section(Generic[C]):
     def __init__(self, **kwargs):
         self._fields = self._build_fields()

@@ -3,18 +3,15 @@ from typing import \
   TypeVar, \
   Generic, \
   Union, \
-  Type
-from abc import ABC, abstractmethod
+  Type, \
+  Protocol
 
 T = TypeVar("T")
-class BaseField(Generic[T], ABC):
-    @abstractmethod
+class BaseField(Generic[T], Protocol):
     def validate(self, value : Union[T, str]) -> T:
         ...
-    @abstractmethod
     def get(self) -> T:
         ...
-    @abstractmethod
     def set(self, value : Union[T, str]):
         ...
 
