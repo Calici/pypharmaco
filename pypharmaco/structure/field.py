@@ -32,7 +32,7 @@ class Field(Generic[T], BaseField[T]):
                 if self.allow_none and value is None:
                     return value
                 elif isinstance(value, str): 
-                    return self.type(str)
+                    return self.type(value)
                 else:
                     return value
             except: 
