@@ -57,9 +57,10 @@ class WebSocketLoop(Generic[Props, SyncSocket]):
             self.socket.close()
         elif isinstance(e, JumpSection):
             target = e.target
-            self.flags = [
-                i < target for i in range(len(self.flags)) 
-            ]
+            if e.set_flag:
+                self.flags = [
+                    i < target for i in range(len(self.flags)) 
+                ]
             self.run(content)
         e.throw_exec()
 
@@ -161,9 +162,10 @@ class AsyncWebSocketLoop(Generic[AsyncSocket, Props]):
             await self.socket.close()
         elif isinstance(e, JumpSection):
             target = e.target
-            self.flags = [
-                i < target for i in range(len(self.flags)) 
-            ]
+            if e.set_flag:
+                self.flags = [
+                    i < target for i in range(len(self.flags)) 
+                ]
             await self.run(content)
         e.throw_exec()
 

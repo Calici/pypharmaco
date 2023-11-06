@@ -93,7 +93,8 @@ class JumpSection(SocketException):
         already been set, if forward, sets the flag
     """
     __slots__ = ('target', )
-    def __init__(self, target : int):
+    def __init__(self, target : int, set_flag : bool):
+        self.set_flag = set_flag
         self.target = target
     def action(self):
         return Action.BREAK
