@@ -4,13 +4,21 @@ from .section import \
   AsyncSocketSection, \
   AsyncSocket, \
   SyncSocket
-from typing import \
-  Any, \
-  TypeVar, \
-  List, \
-  Generic, \
-  Union
 from .exceptions import WaitInput
+try:
+    from typing import \
+        Any, \
+        TypeVar, \
+        List, \
+        Generic, \
+        Union
+except ImportError:
+    from typing_extensions import \
+        Any, \
+        TypeVar, \
+        List, \
+        Generic, \
+        Union
 
 U = TypeVar("U", bound = AsyncSocketSection)
 T = TypeVar("T", bound = SocketSection)

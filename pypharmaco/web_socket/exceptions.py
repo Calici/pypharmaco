@@ -1,8 +1,17 @@
 import logging
-from typing import \
-    Union, \
-    Literal
 from abc import abstractmethod
+try:
+    from typing import \
+        Union, \
+        Any, \
+        List, \
+        Literal
+except ImportError:
+    from typing_extensions import \
+        Union, \
+        Any, \
+        List, \
+        Literal
 
 class Action:
     BREAK = 'break'

@@ -1,12 +1,22 @@
 from .field import Field, BaseField
-from typing import \
-  Dict, \
-  Any, \
-  Set, \
-  Iterable, \
-  Tuple, \
-  TypeVar, \
-  Generic
+try:
+    from typing import \
+        Dict, \
+        Any, \
+        Set, \
+        Iterable, \
+        Tuple, \
+        TypeVar, \
+        Generic
+except ImportError:
+    from typing_extensions import \
+        Dict, \
+        Any, \
+        Set, \
+        Iterable, \
+        Tuple, \
+        TypeVar, \
+        Generic
 import copy
 
 C = TypeVar("C", bound = BaseField)

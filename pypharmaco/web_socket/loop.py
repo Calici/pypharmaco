@@ -12,14 +12,21 @@ from .exceptions import \
     ContinueLoop, \
     BreakLoop, \
     PassLoop
-from typing import \
-    TypeVar, \
-    Generic, \
-    List
 from .sys_call import \
     SysCallSection, \
     AsyncSysCallSection
 import logging
+
+try:
+    from typing import \
+        TypeVar, \
+        Generic, \
+        List
+except ImportError:
+    from typing_extensions import \
+        TypeVar, \
+        Generic, \
+        List
 
 AsyncSocket = TypeVar('AsyncSocket', bound = AsyncJSONSocketConsumerI)
 SyncSocket = TypeVar(
