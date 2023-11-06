@@ -2,10 +2,11 @@ import os
 import pathlib
 from typing import \
     Callable, \
-    TypedDict, \
     Union, \
     Any, \
     List
+from typing_extensions import \
+    TypedDict
 from .exceptions import EnvParserError
     
 class EnvEntry(TypedDict):
