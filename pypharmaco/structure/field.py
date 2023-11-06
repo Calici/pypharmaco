@@ -3,7 +3,8 @@ from typing import \
   TypeVar, \
   Generic, \
   Union, \
-  Type, \
+  Type
+from typing_extensions import \
   Protocol
 
 T = TypeVar("T")

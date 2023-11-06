@@ -11,9 +11,9 @@ setup(
     packages=[ 
       "pypharmaco.env_parser", 
       "pypharmaco.structure", 
-      "pypharmaco.web_socket" 
+      "pypharmaco.web_socket"
     ],
     install_requires=[
-        
+        "typing_extensions==4.7.1",
     ]
 )
