@@ -12,14 +12,21 @@ from .exceptions import \
     ContinueLoop, \
     BreakLoop, \
     PassLoop
-from typing import \
-    TypeVar, \
-    Generic, \
-    List
 from .sys_call import \
     SysCallSection, \
     AsyncSysCallSection
 import logging
+
+try:
+    from typing import \
+        TypeVar, \
+        Generic, \
+        List
+except ImportError:
+    from typing_extensions import \
+        TypeVar, \
+        Generic, \
+        List
 
 AsyncSocket = TypeVar('AsyncSocket', bound = AsyncJSONSocketConsumerI)
 SyncSocket = TypeVar(
@@ -57,9 +64,10 @@ class WebSocketLoop(Generic[Props, SyncSocket]):
             self.socket.close()
         elif isinstance(e, JumpSection):
             target = e.target
-            self.flags = [
-                i < target for i in range(len(self.flags)) 
-            ]
+            if e.set_flag:
+                self.flags = [
+                    i < target for i in range(len(self.flags)) 
+                ]
             self.run(content)
         e.throw_exec()
 
@@ -161,9 +169,10 @@ class AsyncWebSocketLoop(Generic[AsyncSocket, Props]):
             await self.socket.close()
         elif isinstance(e, JumpSection):
             target = e.target
-            self.flags = [
-                i < target for i in range(len(self.flags)) 
-            ]
+            if e.set_flag:
+                self.flags = [
+                    i < target for i in range(len(self.flags)) 
+                ]
             await self.run(content)
         e.throw_exec()
 

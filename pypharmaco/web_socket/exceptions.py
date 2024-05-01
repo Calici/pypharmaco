@@ -1,8 +1,17 @@
 import logging
-from typing import \
-    Union, \
-    Literal
 from abc import abstractmethod
+try:
+    from typing import \
+        Union, \
+        Any, \
+        List, \
+        Literal
+except ImportError:
+    from typing_extensions import \
+        Union, \
+        Any, \
+        List, \
+        Literal
 
 class Action:
     BREAK = 'break'
@@ -93,7 +102,8 @@ class JumpSection(SocketException):
         already been set, if forward, sets the flag
     """
     __slots__ = ('target', )
-    def __init__(self, target : int):
+    def __init__(self, target : int, set_flag : bool):
+        self.set_flag = set_flag
         self.target = target
     def action(self):
         return Action.BREAK

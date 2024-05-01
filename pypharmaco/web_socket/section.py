@@ -1,8 +1,14 @@
 from .consumer import JSONSocketConsumerI, AsyncJSONSocketConsumerI
 from .props import SocketProps
-from typing import \
-  TypeVar, \
-  Generic
+
+try:
+    from typing import \
+        TypeVar, \
+        Generic
+except ImportError:
+    from typing_extensions import \
+        TypeVar, \
+        Generic
 
 AsyncSocket = TypeVar('AsyncSocket', bound = AsyncJSONSocketConsumerI)
 SyncSocket = TypeVar('SyncSocket', bound = JSONSocketConsumerI)

@@ -1,7 +1,8 @@
 from typing import \
-  Protocol, \
   Dict, \
   Any
+from typing_extensions import \
+  Protocol
 
 class JSONSocketConsumerI(Protocol):
     def send_json(self, content : Dict[str, Any]):

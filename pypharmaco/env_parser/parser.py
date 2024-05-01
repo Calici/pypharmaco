@@ -1,11 +1,19 @@
 import os
 import pathlib
-from typing import \
-    Callable, \
-    TypedDict, \
-    Union, \
-    Any, \
-    List
+try:
+    from typing import \
+        Callable, \
+        Union, \
+        Any, \
+        List, \
+        TypedDict
+except ImportError:
+    from typing_extensions import \
+        Callable, \
+        Union, \
+        Any, \
+        List, \
+        TypedDict
 from .exceptions import EnvParserError
     
 class EnvEntry(TypedDict):
