@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pypharmaco',
-    version='0.0.2',    
+    version='0.0.3',    
     description='A Python Package for Pharmaco Net utilities that developer uses',
     url='https://github.com/calici/pypharmaco',
     author='Jonathan Willianto',
