@@ -14,10 +14,6 @@ setup(
       "pypharmaco.web_socket"
     ],
     install_requires=[
-<<<<<<< HEAD
         "typing_extensions>=4.7.1",
-=======
-        "typing_extensions==4.7.1",
->>>>>>> v0.0.1
     ]
 )
