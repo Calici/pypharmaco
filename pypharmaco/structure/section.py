@@ -62,7 +62,7 @@ class Section(Generic[C]):
             return getattr(self, field_name)
         else:
             raise KeyError(
-                "No such key {0} in {1}. Available fields are : {2}".format(
+                "No such key '{0}' in {1}. Available fields are : {2}".format(
                     field_name, self.__class__.__name__, str(self.field_names())
                 )
             )
